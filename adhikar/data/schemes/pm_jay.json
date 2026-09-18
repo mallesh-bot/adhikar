@@ -1,0 +1,8 @@
+{
+  "scheme_name": "Ayushman Bharat – Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
+  "category": "health",
+  "eligibility_text": "Families identified as economically vulnerable under the SECC 2011 database (and equivalent state extensions), plus specific occupational categories added by some states (e.g. gig or construction workers via state top-up schemes). Check eligibility on the official portal using ration card or Aadhaar.",
+  "benefits": "Cashless hospitalisation cover of Rs 5 lakh per family per year at empanelled public and private hospitals, covering most secondary and tertiary care.",
+  "apply_url": "https://beneficiary.nha.gov.in/",
+  "source_note": "The Rs 5 lakh/family/year figure has been stable since 2018; some states run add-on top-up schemes for informal workers — check your state's health department for those."
+}

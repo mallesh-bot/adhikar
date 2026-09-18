@@ -1,0 +1,8 @@
+{
+  "scheme_name": "Building and Other Construction Workers (BOCW) Welfare Fund",
+  "category": "gig_labour_welfare",
+  "eligibility_text": "Construction workers (masons, painters, electricians, plumbers, welders, loaders, etc.) who have worked at least 90 days in the preceding year, registered with their state's Labour Department BOCW Welfare Board.",
+  "benefits": "State-run welfare fund financed by a 1% cess on construction cost; typical benefits include accident assistance, disability pension, maternity benefit, and education scholarships for children — exact benefits and amounts vary by state.",
+  "apply_url": "https://labour.gov.in/",
+  "source_note": "Structure is central law (BOCW Act, 1996) but benefits are state-administered — use your state's specific labour department portal for exact figures."
+}

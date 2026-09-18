@@ -1,0 +1,8 @@
+{
+  "scheme_name": "Atal Pension Yojana (APY)",
+  "category": "pension",
+  "eligibility_text": "Any Indian citizen aged 18-40 with a savings bank account or post-office account. Income-tax payers have been excluded from new enrolment since October 2022.",
+  "benefits": "Guaranteed monthly pension of Rs 1,000 / 2,000 / 3,000 / 4,000 or 5,000 from age 60, based on the contribution slab chosen at entry. Spouse receives the same pension after subscriber's death, then the nominee gets the accumulated corpus.",
+  "apply_url": "https://npscra.nsdl.co.in/scheme-details.php",
+  "source_note": "Core structure stable since 2015; double-check the exact contribution-to-pension slab table on npscra.nsdl.co.in before quoting numbers in the demo."
+}

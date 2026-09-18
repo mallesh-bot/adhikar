@@ -1,0 +1,8 @@
+# Verified installable Sep 2026 (see README for how these were checked).
+# strands-agents[cedar] pulls in cedarpy==4.8.7 for the CedarAuthorization
+# intervention. Pick ONE of [ollama] or [anthropic] below.
+strands-agents[ollama,cedar]
+# strands-agents[anthropic,cedar]   # use this instead if you'd rather use a personal Anthropic key than Ollama
+
+opensearch-py>=3.0.0
+sentence-transformers>=5.0.0

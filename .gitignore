@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+adhikar/data/interactions.jsonl
+adhikar_venv/
+.venv/

@@ -1,0 +1,8 @@
+{
+  "scheme_name": "Pradhan Mantri Awas Yojana (PMAY) — Gramin and Urban",
+  "category": "housing",
+  "eligibility_text": "Households without a pucca (permanent) house, assessed against state-specific priority lists (PMAY-Gramin) or income/asset criteria for EWS/LIG/MIG categories (PMAY-Urban). No existing pucca house anywhere in India.",
+  "benefits": "Central financial assistance toward constructing a pucca house, amount varying by category (rural/urban, plain/hilly) and revised periodically; PMAY-Urban 2.0 (announced 2024) restructured the urban income/subsidy slabs.",
+  "apply_url": "https://pmaymis.gov.in/",
+  "source_note": "Subsidy amounts and urban slabs have changed multiple times (most recently PMAY-U 2.0) — verify current figures on pmayg.gov.in / pmay-urban.gov.in before quoting a rupee amount in the demo."
+}

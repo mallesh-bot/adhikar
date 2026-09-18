@@ -1,0 +1,8 @@
+{
+  "scheme_name": "e-Shram Card (National Database of Unorganised Workers)",
+  "category": "gig_labour_welfare",
+  "eligibility_text": "Any unorganised-sector worker aged 16-59 (gig/platform workers, migrant workers, domestic workers, street vendors, construction workers, etc.) who is not an EPFO/ESIC member and not an income-tax payer. Needs Aadhaar linked to a mobile number.",
+  "benefits": "Free registration; issues a lifetime 12-digit Universal Account Number (UAN); acts as the gateway that many other central schemes (PMSBY accident cover, PM-SYM pension) check against. Free 10-minute self-registration.",
+  "apply_url": "https://eshram.gov.in/",
+  "source_note": "Verified Sep 2026. This is the identity layer most other schemes key off — a good first question to ask a user in the demo."
+}
