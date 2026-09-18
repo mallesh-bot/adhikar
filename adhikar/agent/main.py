@@ -25,11 +25,24 @@ except Exception:
     pass
 
 from strands import Agent
+from strands.handlers.callback_handler import PrintingCallbackHandler
 from strands.vended_interventions.cedar.cedar_authorization import CedarAuthorization
 
 from tools.log_interaction import log_interaction
 from tools.record_consent import get_consented_attributes, record_consent
 from tools.search_schemes import search_schemes
+
+
+class _NoReasoningCallbackHandler(PrintingCallbackHandler):
+    """Same as the default streaming handler but drops reasoningText -- gpt-oss
+    (via Groq) streams chain-of-thought there and we don't want it in the
+    user-visible transcript. Regular data, tool markers, and completion
+    behavior are untouched. See PrintingCallbackHandler for the fields
+    consumed."""
+
+    def __call__(self, **kwargs):
+        kwargs.pop("reasoningText", None)
+        super().__call__(**kwargs)
 
 SYSTEM_PROMPT = """\
 You are Adhikar, an assistant that helps informal and gig workers in India
@@ -40,9 +53,13 @@ Rules:
    state usually narrow it enough. Ask a second only if the first answer
    still leaves more than one plausible category.
 2. Never assume caste category, religion, disability status, or income band.
-   If a scheme's eligibility depends on one of these, ask directly. Call
-   record_consent(attribute) once the user agrees before including that
-   attribute in a search_schemes call -- Cedar will deny the call otherwise.
+   If a scheme's eligibility depends on one of these, ask directly. Even if
+   the user volunteers a sensitive attribute unprompted, you must still
+   explicitly ask whether you may use it for matching -- volunteering the
+   information is not itself consent to use it. Only call
+   record_consent(attribute) AFTER the user answers yes to that ask.
+   Include the attribute in a search_schemes call only after record_consent
+   -- Cedar will deny the call otherwise.
 3. Use the search_schemes tool to retrieve candidate schemes before
    answering. Never invent a scheme or its eligibility criteria from memory.
 4. For each scheme you return, state: the name, one sentence on why it
@@ -85,6 +102,20 @@ def build_agent() -> Agent:
             client_args={"api_key": os.environ["GEMINI_API_KEY"]},
             model_id=os.environ.get("GEMINI_MODEL_ID", "gemini-3.6-flash"),
         )
+    elif provider == "groq":
+        # Groq exposes an OpenAI-compatible endpoint, so we reuse OpenAIModel
+        # with client_args pointed at Groq's base URL. llama-3.3-70b-versatile
+        # (the original pick) was retired from Groq's lineup; gpt-oss-120b is
+        # the current biggest general chat model there.
+        from strands.models.openai import OpenAIModel
+
+        model = OpenAIModel(
+            client_args={
+                "api_key": os.environ["GROQ_API_KEY"],
+                "base_url": "https://api.groq.com/openai/v1",
+            },
+            model_id=os.environ.get("GROQ_MODEL_ID", "openai/gpt-oss-120b"),
+        )
     else:
         raise ValueError(f"Unknown ADHIKAR_MODEL_PROVIDER: {provider!r}")
 
@@ -108,6 +139,7 @@ def build_agent() -> Agent:
         system_prompt=SYSTEM_PROMPT,
         tools=[search_schemes, record_consent, log_interaction],
         interventions=[cedar],
+        callback_handler=_NoReasoningCallbackHandler(),
     )
     _agent_ref["agent"] = agent
     return agent

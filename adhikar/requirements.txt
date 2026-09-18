@@ -1,8 +1,12 @@
 # Verified installable Sep 2026 (see README for how these were checked).
-# strands-agents[cedar] pulls in cedarpy==4.8.7 for the CedarAuthorization
-# intervention. Pick ONE of [ollama] or [anthropic] below.
-strands-agents[ollama,cedar]
-# strands-agents[anthropic,cedar]   # use this instead if you'd rather use a personal Anthropic key than Ollama
+# strands-agents[cedar] pulls in cedarpy for the CedarAuthorization
+# intervention. The extras list below covers every provider main.py knows
+# about; drop the ones you don't intend to use to trim the install.
+#   openai   -> groq (verified end-to-end; Groq exposes an OpenAI-compat API)
+#   ollama   -> local llama3.1 / qwen2.5 (see README caveats)
+#   anthropic -> Claude
+#   gemini   -> Google
+strands-agents[cedar,openai,ollama,anthropic,gemini]
 
 opensearch-py>=3.0.0
 sentence-transformers>=5.0.0
