@@ -34,6 +34,6 @@ def log_interaction(category_matched: str, num_results: int) -> str:
         "num_results": num_results,
     }
     os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
-    with open(LOG_PATH, "a") as f:
+    with open(LOG_PATH, "a", encoding="utf-8") as f:
         f.write(json.dumps(event) + "\n")
     return "Logged."

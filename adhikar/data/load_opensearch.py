@@ -57,7 +57,9 @@ def main() -> None:
 
     actions = []
     for path in sorted(glob.glob(os.path.join(SCHEMES_DIR, "*.json"))):
-        with open(path) as f:
+        # Explicit utf-8: Windows defaults open() to cp1252, which silently
+        # mangles the rupee signs and en-dashes in the scheme text at index time.
+        with open(path, encoding="utf-8") as f:
             scheme = json.load(f)
         text_to_embed = f"{scheme['scheme_name']}. {scheme['eligibility_text']} {scheme['benefits']}"
         embedding = model.encode(text_to_embed).tolist()

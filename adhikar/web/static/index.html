@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Adhikar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#FBF6EC;
+  --ink:#2A2018;
+  --muted:#8B7A64;
+  --accent:#C2703D;
+  --accent-ink:#FFF6EF;
+  --verified:#5B7553;
+  --card:#FFFDF8;
+  --border:#EADFC8;
+
+  --r-bubble:18px;
+  --r-card:14px;
+  --pop:180ms cubic-bezier(.22,1.2,.36,1);
+  --fade:160ms ease-out;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Public Sans',system-ui,-apple-system,Segoe UI,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- shell ---------- */
+.app{
+  display:flex;
+  flex-direction:column;
+  height:100dvh;
+  max-width:560px;      /* keeps bubbles from stretching on desktop */
+  margin:0 auto;
+  border-left:1px solid var(--border);
+  border-right:1px solid var(--border);
+  background:var(--bg);
+}
+@media (max-width:600px){ .app{border-left:0;border-right:0} }
+
+/* ---------- header ---------- */
+header{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+  background:color-mix(in srgb, var(--bg) 86%, #fff);
+  backdrop-filter:saturate(1.2) blur(6px);
+  position:sticky; top:0; z-index:5;
+}
+.mark{flex:0 0 auto;width:26px;height:26px;color:var(--accent)}
+.wordmark{
+  font-family:'Fraunces',Georgia,serif;
+  font-weight:600;
+  font-size:21px;
+  letter-spacing:-.01em;
+  margin:0;
+}
+.tagline{
+  margin:0;
+  font-size:11.5px;
+  color:var(--muted);
+  letter-spacing:.02em;
+}
+.header-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+.reset-btn{
+  margin-left:auto;
+  flex:0 0 auto;
+  font:inherit;
+  font-size:12px;
+  color:var(--muted);
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:5px 11px;
+  cursor:pointer;
+  transition:color var(--fade), border-color var(--fade);
+}
+.reset-btn:hover{color:var(--accent);border-color:var(--accent)}
+
+/* ---------- message list ---------- */
+.messages{
+  flex:1 1 auto;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:18px 16px 8px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  scroll-behavior:smooth;
+}
+@media (prefers-reduced-motion:reduce){ .messages{scroll-behavior:auto} }
+
+.row{display:flex;width:100%}
+.row.user{justify-content:flex-end}
+.row.agent{justify-content:flex-start}
+
+.bubble{
+  max-width:84%;
+  padding:10px 14px;
+  border-radius:var(--r-bubble);
+  white-space:pre-wrap;
+  word-wrap:break-word;
+  overflow-wrap:anywhere;
+}
+.row.user .bubble{
+  background:var(--accent);
+  color:var(--accent-ink);
+  border-bottom-right-radius:6px;
+}
+.row.agent .bubble{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-bottom-left-radius:6px;
+}
+.bubble a{color:inherit;text-underline-offset:2px}
+.row.agent .bubble a{color:var(--accent)}
+.bubble strong{font-weight:700}
+
+/* entry pop: transform+opacity only */
+.enter{animation:pop var(--pop) both}
+@keyframes pop{
+  from{opacity:0;transform:translateY(8px) scale(.97)}
+  to  {opacity:1;transform:none}
+}
+
+/* ---------- typing indicator ---------- */
+.typing{display:flex;gap:4px;align-items:center;padding:13px 16px}
+.typing i{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--muted);opacity:.5;
+  animation:blip 1.15s infinite ease-in-out;
+}
+.typing i:nth-child(2){animation-delay:.16s}
+.typing i:nth-child(3){animation-delay:.32s}
+@keyframes blip{
+  0%,80%,100%{transform:scale(.72);opacity:.35}
+  40%        {transform:scale(1);  opacity:.9}
+}
+
+/* ---------- streaming cursor ---------- */
+.cursor{
+  display:inline-block;
+  width:2px;height:1.05em;
+  vertical-align:-2px;
+  margin-left:1px;
+  background:var(--accent);
+  animation:caret 1s steps(1) infinite;
+}
+@keyframes caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+/* ---------- tool chip ---------- */
+.chip{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:12.5px;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--card);
+  color:var(--muted);
+  max-width:92%;
+}
+.chip svg{width:14px;height:14px;flex:0 0 auto}
+.chip.blocked{
+  color:#8A5A2B;
+  border-color:#E4C9A6;
+  background:#FDF3E6;
+}
+
+/* ---------- THE HERO: cedar consent chip ---------- */
+.cedar{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:8px 14px;
+  border-radius:999px;
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--verified);
+  border:1px solid transparent;
+  background:transparent;
+  max-width:92%;
+  /* pill bg/border/glow settle AFTER the checkmark draws */
+  transition:
+    background-color 240ms ease-out 380ms,
+    border-color     240ms ease-out 380ms,
+    box-shadow       420ms ease-out 400ms;
+}
+.cedar .label{
+  opacity:0;
+  transform:translateX(-4px);
+  transition:opacity 220ms ease-out 400ms, transform 220ms ease-out 400ms;
+}
+.cedar svg{width:19px;height:19px;flex:0 0 auto;color:var(--verified)}
+/* dasharray/dashoffset are set inline by JS from the measured path length */
+.cedar.go{
+  background:#EEF3EC;
+  border-color:#CBDCC4;
+  box-shadow:0 0 0 5px rgba(91,117,83,.10);
+}
+.cedar.go .draw{
+  transition:stroke-dashoffset 400ms cubic-bezier(.65,0,.35,1);
+}
+.cedar.go .label{opacity:1;transform:none}
+.cedar.settled{box-shadow:0 0 0 0 rgba(91,117,83,0)}
+
+/* ---------- scheme cards ---------- */
+.schemes{display:flex;flex-direction:column;gap:8px;width:100%;max-width:92%}
+.scheme{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--r-card);
+  padding:12px 14px;
+  border-left:3px solid var(--accent);
+  animation:pop var(--pop) both;
+  animation-delay:calc(var(--i,0) * 70ms);   /* stagger */
+}
+.scheme h3{
+  font-family:'Fraunces',Georgia,serif;
+  font-weight:600;
+  font-size:15px;
+  margin:0 0 4px;
+  line-height:1.3;
+}
+.scheme p{margin:0 0 8px;font-size:13px;color:var(--muted)}
+.scheme .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{
+  font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--muted);border:1px solid var(--border);
+  border-radius:999px;padding:2px 8px;
+}
+.scheme a{
+  font-size:12.5px;font-weight:600;color:var(--accent);
+  text-decoration:none;border-bottom:1px solid currentColor;
+}
+
+/* ---------- composer ---------- */
+footer{
+  flex:0 0 auto;
+  padding:10px 14px calc(12px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);
+  background:color-mix(in srgb, var(--bg) 86%, #fff);
+}
+form{display:flex;gap:9px;align-items:center}
+.field{flex:1 1 auto;min-width:0}
+.visually-hidden{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+input[type=text]{
+  width:100%;
+  font:inherit;
+  color:var(--ink);
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:11px 16px;
+  transition:border-color 180ms ease-out, box-shadow 180ms ease-out;
+}
+input[type=text]::placeholder{color:#B4A38D}
+input[type=text]:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(194,112,61,.14);
+}
+input[type=text]:focus-visible{outline:2px solid transparent}
+
+.send{
+  flex:0 0 auto;
+  width:42px;height:42px;
+  border-radius:50%;
+  border:none;
+  background:var(--accent);
+  color:var(--accent-ink);
+  display:grid;place-items:center;
+  cursor:pointer;
+  transition:transform 120ms ease-out, opacity 160ms ease-out;
+}
+.send:active{transform:scale(.92)}
+.send:disabled{opacity:.55;cursor:default}
+.send:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.send svg{width:18px;height:18px}
+.send .spin{animation:spin .7s linear infinite;transform-origin:50% 50%}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.error{
+  font-size:12.5px;color:#9B3D2E;
+  background:#FBECE8;border:1px solid #EFCDC4;
+  border-radius:10px;padding:8px 12px;max-width:92%;
+}
+
+/* ---------- reduced motion: instant, static ---------- */
+@media (prefers-reduced-motion:reduce){
+  .enter,.scheme{animation:none !important}
+  .typing i{animation:none;opacity:.6}
+  .cursor{animation:none;opacity:1}
+  .cedar,.cedar .label{transition:none !important}
+  .cedar .draw{stroke-dashoffset:0 !important;transition:none !important}
+  .cedar .label{opacity:1 !important;transform:none !important}
+  .send .spin{animation:none}
+  .send:active{transform:none}
+  input[type=text]{transition:none}
+  *{scroll-behavior:auto !important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <svg class="mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2.6 4.6 5.5v6c0 4.6 3.1 8.5 7.4 9.9 4.3-1.4 7.4-5.3 7.4-9.9v-6L12 2.6Z"
+            stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+      <path d="m8.6 11.9 2.4 2.4 4.4-4.6" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="header-text">
+      <h1 class="wordmark">Adhikar</h1>
+      <p class="tagline">Find the schemes you're entitled to</p>
+    </div>
+    <button type="button" class="reset-btn" id="reset">New chat</button>
+  </header>
+
+  <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
+
+  <footer>
+    <form id="composer">
+      <div class="field">
+        <label for="msg" class="visually-hidden">Describe your situation</label>
+        <input id="msg" name="msg" type="text" autocomplete="off"
+               placeholder="I deliver food in Bengaluru&hellip;" />
+      </div>
+      <button class="send" id="send" type="submit" aria-label="Send message">
+        <svg id="send-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.1"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </form>
+  </footer>
+
+</div>
+
+<script>
+(() => {
+  const list    = document.getElementById('messages');
+  const form    = document.getElementById('composer');
+  const input   = document.getElementById('msg');
+  const sendBtn = document.getElementById('send');
+  const icon    = document.getElementById('send-icon');
+  const resetBtn= document.getElementById('reset');
+
+  const ARROW = '<path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>';
+  const SPIN  = '<g class="spin"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2.1" opacity=".3"/><path d="M12 4a8 8 0 0 1 8 8" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></g>';
+  const TICK  = '<path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>';
+
+  const atBottom = () => list.scrollHeight - list.scrollTop - list.clientHeight < 90;
+  const stick = (force) => { if (force || atBottom()) list.scrollTop = list.scrollHeight; };
+
+  const esc = s => s.replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // Minimal, escape-first markdown: **bold**, [text](url), bare urls.
+  function render(text){
+    let h = esc(text);
+    h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    h = h.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g,
+        '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
+    return h;
+  }
+
+  function row(side){
+    const r = document.createElement('div');
+    r.className = `row ${side}`;
+    list.appendChild(r);
+    return r;
+  }
+
+  function addBubble(side, text){
+    const r = row(side);
+    const b = document.createElement('div');
+    b.className = 'bubble enter';
+    b.innerHTML = render(text);
+    r.appendChild(b);
+    stick(true);
+    return b;
+  }
+
+  function addTyping(){
+    const r = row('agent');
+    const b = document.createElement('div');
+    b.className = 'bubble enter typing';
+    b.innerHTML = '<i></i><i></i><i></i>';
+    b.setAttribute('aria-label','Adhikar is thinking');
+    r.appendChild(b);
+    stick(true);
+    return r;
+  }
+
+  function addChip(label, blocked){
+    const r = row('agent');
+    const c = document.createElement('div');
+    c.className = 'chip enter' + (blocked ? ' blocked' : '');
+    const glyph = blocked
+      ? '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v5.2M12 16.2v.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.6" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>';
+    c.innerHTML = glyph + '<span>' + esc(label) + '</span>';
+    r.appendChild(c);
+    stick();
+  }
+
+  // THE HERO MOMENT --------------------------------------------------------
+  // checkmark path draws itself, then the pill + glow settle around it.
+  function addCedarChip(label){
+    const r = row('agent');
+    const c = document.createElement('div');
+    c.className = 'cedar';
+    c.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+        '<path d="M12 2.6 4.6 5.5v6c0 4.6 3.1 8.5 7.4 9.9 4.3-1.4 7.4-5.3 7.4-9.9v-6L12 2.6Z" ' +
+              'stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" opacity=".38"/>' +
+        '<path class="draw" d="m8.4 11.9 2.5 2.5 4.6-4.8" stroke="currentColor" ' +
+              'stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '</svg>' +
+      '<span class="label">' + esc(label) + '</span>';
+    r.appendChild(c);
+
+    // Measure the real path length so the dash animation is exact. Both the
+    // start and end dashoffset are set inline: an inline value wins over the
+    // stylesheet, so the .cedar.go rule alone could never unset it.
+    const p = c.querySelector('.draw');
+    const len = p.getTotalLength();
+    p.style.strokeDasharray = len;
+    p.style.strokeDashoffset = len;
+
+    // Kick off on the next frame so the start state is committed first, but
+    // fall back to a timer: rAF never fires while the tab is backgrounded, and
+    // without this the chip would stay invisible forever if the presenter
+    // switched windows at the wrong moment.
+    let started = false;
+    const start = () => {
+      if (started) return;
+      started = true;
+      c.classList.add('go');          // pill bg + glow + label (CSS-driven)
+      p.style.strokeDashoffset = '0'; // checkmark draws (inline, transitioned by .go)
+      // let the glow settle back down once everything has landed
+      setTimeout(() => c.classList.add('settled'), 900);
+    };
+    requestAnimationFrame(() => requestAnimationFrame(start));
+    setTimeout(start, 60);
+    stick();
+  }
+
+  function addSchemes(items){
+    const r = row('agent');
+    const wrap = document.createElement('div');
+    wrap.className = 'schemes';
+    items.forEach((s, i) => {
+      const el = document.createElement('article');
+      el.className = 'scheme';
+      el.style.setProperty('--i', i);
+      el.innerHTML =
+        '<h3>' + esc(s.scheme_name || '') + '</h3>' +
+        (s.benefits ? '<p>' + esc(s.benefits) + '</p>' : '') +
+        '<div class="meta">' +
+          (s.category ? '<span class="tag">' + esc(s.category.replace(/_/g,' ')) + '</span>' : '') +
+          (s.apply_url ? '<a href="' + esc(s.apply_url) + '" target="_blank" rel="noopener noreferrer">Apply &rarr;</a>' : '') +
+        '</div>';
+      wrap.appendChild(el);
+    });
+    r.appendChild(wrap);
+    stick();
+  }
+
+  function addError(msg){
+    const r = row('agent');
+    const e = document.createElement('div');
+    e.className = 'error enter';
+    e.textContent = msg;
+    r.appendChild(e);
+    stick(true);
+  }
+
+  const TOOL_LABEL = {
+    search_schemes:  'Searching schemes…',
+    record_consent:  'Recording your consent…',
+    log_interaction: 'Logging (anonymised)…'
+  };
+
+  let busy = false;
+
+  function setBusy(state){
+    busy = state;
+    sendBtn.disabled = state;
+    input.disabled = state;
+    icon.innerHTML = state ? SPIN : ARROW;
+  }
+
+  function flashDone(){
+    icon.innerHTML = TICK;
+    setTimeout(() => { if (!busy) icon.innerHTML = ARROW; }, 850);
+  }
+
+  async function send(text){
+    addBubble('user', text);
+    setBusy(true);
+
+    const typing = addTyping();
+    let typingGone = false;
+    const dropTyping = () => { if (!typingGone){ typing.remove(); typingGone = true; } };
+
+    // the bubble currently receiving tokens; null = need a fresh one
+    let live = null, liveText = '', cursor = null;
+
+    const openLive = () => {
+      const r = row('agent');
+      live = document.createElement('div');
+      live.className = 'bubble enter';
+      cursor = document.createElement('span');
+      cursor.className = 'cursor';
+      live.appendChild(cursor);
+      r.appendChild(live);
+      liveText = '';
+      stick(true);
+    };
+    const closeLive = () => {
+      if (live){
+        if (cursor) cursor.remove();
+        if (!liveText.trim()) live.parentElement.remove();
+        live = null; cursor = null; liveText = '';
+      }
+    };
+
+    try {
+      const res = await fetch('/api/chat', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ message: text })
+      });
+      if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
+
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+
+      while (true){
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream:true });
+
+        let nl;
+        while ((nl = buf.indexOf('\n\n')) !== -1){
+          const frame = buf.slice(0, nl); buf = buf.slice(nl + 2);
+          if (!frame.startsWith('data:')) continue;
+          let ev;
+          try { ev = JSON.parse(frame.slice(5).trim()); } catch { continue; }
+
+          if (ev.type === 'token'){
+            dropTyping();
+            if (!live) openLive();
+            liveText += ev.text;
+            live.innerHTML = render(liveText);
+            live.appendChild(cursor);
+            stick();
+          }
+          else if (ev.type === 'tool_call'){
+            dropTyping(); closeLive();
+            addChip(TOOL_LABEL[ev.name] || ev.name);
+          }
+          else if (ev.type === 'cedar_result'){
+            dropTyping(); closeLive();
+            if (!ev.allowed){
+              addChip('Cedar blocked that search — consent not on file', true);
+            } else if (ev.attributes && ev.attributes.length){
+              addCedarChip('Consent recorded — Cedar authorized this search');
+            }
+          }
+          else if (ev.type === 'consent_recorded'){
+            /* the cedar_result chip covers this moment; no duplicate chip */
+          }
+          else if (ev.type === 'schemes'){
+            dropTyping(); closeLive();
+            addSchemes(ev.items || []);
+          }
+          else if (ev.type === 'tool_error'){
+            dropTyping(); closeLive();
+            addError(ev.name + ': ' + ev.message);
+          }
+          else if (ev.type === 'error'){
+            dropTyping(); closeLive();
+            addError(ev.message);
+          }
+          else if (ev.type === 'done'){
+            dropTyping(); closeLive();
+          }
+        }
+      }
+    } catch (err){
+      addError(String(err && err.message ? err.message : err));
+    } finally {
+      dropTyping(); closeLive();
+      setBusy(false);
+      flashDone();
+      input.focus();
+    }
+  }
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text || busy) return;
+    input.value = '';
+    send(text);
+  });
+
+  resetBtn.addEventListener('click', async () => {
+    if (busy) return;
+    await fetch('/api/reset', { method:'POST' });
+    list.innerHTML = '';
+    greet();
+    input.focus();
+  });
+
+  function greet(){
+    addBubble('agent',
+      "Namaste. Tell me about your work and where you live, and I'll look for government schemes you may be entitled to.");
+  }
+
+  greet();
+  input.focus();
+})();
+</script>
+</body>
+</html>
