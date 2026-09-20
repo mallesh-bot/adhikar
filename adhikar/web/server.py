@@ -39,6 +39,7 @@ from fastapi.responses import FileResponse, StreamingResponse  # noqa: E402
 from strands.hooks import AfterToolCallEvent, BeforeToolCallEvent  # noqa: E402
 
 from main import build_agent  # noqa: E402
+from lang import unwrap_from_history, wrap_for_language_lock  # noqa: E402
 
 SENSITIVE = {"income_band", "disability_status", "caste_category"}
 
@@ -248,9 +249,19 @@ async def _event_stream(message: str, request: Request):
     agent = _get_agent()
     _hook.bind(queue)
 
+    # Per-turn language lock: the tightened system-prompt rule 8 is not enough
+    # for gpt-oss-120b on the first turn of an English conversation about
+    # Indian schemes -- topical priors override it. A local script-detection
+    # wrap here is deterministic and beats that bias. The wrapped text goes
+    # only to the model; the frontend showed the user's original text in the
+    # user bubble before calling this endpoint, and `unwrap_from_history`
+    # restores the stored user message so the directive does not persist
+    # across turns.
+    steered = wrap_for_language_lock(message)
+
     async def produce():
         try:
-            async for ev in agent.stream_async(message):
+            async for ev in agent.stream_async(steered):
                 # reasoningText is gpt-oss chain-of-thought; never show it.
                 if ev.get("reasoning") or "reasoningText" in ev:
                     continue
@@ -261,6 +272,7 @@ async def _event_stream(message: str, request: Request):
         except Exception as exc:  # surface model/API failures to the UI
             queue.put_nowait({"type": "error", "message": f"{type(exc).__name__}: {exc}"})
         finally:
+            unwrap_from_history(agent, message)
             queue.put_nowait(None)
 
     task = asyncio.create_task(produce())
