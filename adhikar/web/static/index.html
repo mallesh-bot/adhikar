@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<!-- Indic script coverage: without these, replies in these scripts render as
+     tofu boxes. Weights kept to 400/600 to limit the download. -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Kannada:wght@400;600&family=Noto+Sans+Tamil:wght@400;600&family=Noto+Sans+Telugu:wght@400;600&family=Noto+Sans+Bengali:wght@400;600&family=Noto+Sans+Malayalam:wght@400;600&family=Noto+Sans+Gujarati:wght@400;600&family=Noto+Sans+Gurmukhi:wght@400;600&family=Noto+Sans+Oriya:wght@400;600&display=swap" rel="stylesheet" />
 <style>
 :root{
   --bg:#FBF6EC;
@@ -17,6 +20,12 @@
   --verified:#5B7553;
   --card:#FFFDF8;
   --border:#EADFC8;
+
+  /* Indic fallbacks: the browser falls through to whichever of these covers
+     the script in the text, so one stack serves every supported language. */
+  --indic:'Noto Sans Devanagari','Noto Sans Kannada','Noto Sans Tamil',
+          'Noto Sans Telugu','Noto Sans Bengali','Noto Sans Malayalam',
+          'Noto Sans Gujarati','Noto Sans Gurmukhi','Noto Sans Oriya';
 
   --r-bubble:18px;
   --r-card:14px;
@@ -30,7 +39,7 @@ body{
   margin:0;
   background:var(--bg);
   color:var(--ink);
-  font-family:'Public Sans',system-ui,-apple-system,Segoe UI,sans-serif;
+  font-family:'Public Sans',var(--indic),system-ui,-apple-system,Segoe UI,sans-serif;
   font-size:15px;
   line-height:1.5;
   -webkit-font-smoothing:antialiased;
@@ -63,7 +72,7 @@ header{
 }
 .mark{flex:0 0 auto;width:26px;height:26px;color:var(--accent)}
 .wordmark{
-  font-family:'Fraunces',Georgia,serif;
+  font-family:'Fraunces',var(--indic),Georgia,serif;
   font-weight:600;
   font-size:21px;
   letter-spacing:-.01em;
@@ -104,9 +113,11 @@ header{
 }
 @media (prefers-reduced-motion:reduce){ .messages{scroll-behavior:auto} }
 
-.row{display:flex;width:100%}
+.row{display:flex;width:100%;flex-wrap:wrap}
 .row.user{justify-content:flex-end}
 .row.agent{justify-content:flex-start}
+/* speak-wrap sits on its own line under the bubble, not beside it */
+.row .speak-wrap{flex-basis:100%}
 
 .bubble{
   max-width:84%;
@@ -129,6 +140,35 @@ header{
 .bubble a{color:inherit;text-underline-offset:2px}
 .row.agent .bubble a{color:var(--accent)}
 .bubble strong{font-weight:700}
+
+/* ---------- speak (TTS) button ---------- */
+/* An affordance under the agent bubble, not on top of it -- avoids overlap
+   with long replies and keeps the bubble text unobscured. */
+.speak-wrap{margin-top:6px;display:flex;justify-content:flex-start}
+.speak{
+  appearance:none;
+  font:inherit;
+  font-size:11.5px;
+  letter-spacing:.02em;
+  color:var(--accent);
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:4px 10px 4px 8px;
+  display:inline-flex;align-items:center;gap:6px;
+  cursor:pointer;
+  transition:color 160ms ease-out, border-color 160ms ease-out,
+             background-color 160ms ease-out, transform 120ms ease-out;
+}
+.speak:hover{border-color:var(--accent);background:#FFF6EF}
+.speak:active{transform:scale(.94)}
+.speak:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.speak[disabled]{opacity:.6;cursor:default;transform:none}
+.speak svg{width:13px;height:13px;flex:0 0 auto}
+.speak .spin{animation:spin .7s linear infinite;transform-origin:50% 50%}
+.speak.err{color:#9B3D2E;border-color:#EFCDC4;background:#FBECE8}
+.speak.err:hover{background:#FBECE8}
+.speak.playing{color:var(--verified);border-color:#CBDCC4;background:#EEF3EC}
 
 /* entry pop: transform+opacity only */
 .enter{animation:pop var(--pop) both}
@@ -227,7 +267,7 @@ header{
   animation-delay:calc(var(--i,0) * 70ms);   /* stagger */
 }
 .scheme h3{
-  font-family:'Fraunces',Georgia,serif;
+  font-family:'Fraunces',var(--indic),Georgia,serif;
   font-weight:600;
   font-size:15px;
   margin:0 0 4px;
@@ -310,6 +350,8 @@ input[type=text]:focus-visible{outline:2px solid transparent}
   .cedar .label{opacity:1 !important;transform:none !important}
   .send .spin{animation:none}
   .send:active{transform:none}
+  .speak .spin{animation:none}
+  .speak:active{transform:none}
   input[type=text]{transition:none}
   *{scroll-behavior:auto !important}
 }
@@ -395,8 +437,96 @@ input[type=text]:focus-visible{outline:2px solid transparent}
     b.className = 'bubble enter';
     b.innerHTML = render(text);
     r.appendChild(b);
+    if (side === 'agent') attachSpeaker(r, () => text);
     stick(true);
     return b;
+  }
+
+  // ---------- speak (TTS) button ----------
+  // Reused for the greeting bubble and each streamed agent reply. The row is
+  // where the button is appended (below the bubble, not inside it) so long
+  // replies do not overlap it.  getText() returns the current text at click
+  // time -- needed because streamed bubbles finalize before their content
+  // reaches its final form in rare cases.
+  const VOL = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15.5 8.5c1.4 1 1.4 6 0 7M17.5 6.5c2.8 2 2.8 9 0 11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+  const VOL_SPIN = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><g class="spin"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" opacity=".3"/><path d="M12 4a8 8 0 0 1 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></g></svg>';
+  const VOL_ERR = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v5.2M12 16.2v.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>';
+
+  function attachSpeaker(rowEl, getText){
+    const wrap = document.createElement('div');
+    wrap.className = 'speak-wrap';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'speak';
+    btn.setAttribute('aria-label', 'Read this reply aloud');
+    btn.innerHTML = VOL + '<span>Listen</span>';
+    wrap.appendChild(btn);
+    rowEl.appendChild(wrap);
+
+    let audioEls = [];
+    let state = 'idle'; // idle | loading | playing | error
+
+    const setState = (s, label) => {
+      state = s;
+      btn.classList.remove('err','playing');
+      if (s === 'loading'){ btn.disabled = true;  btn.innerHTML = VOL_SPIN + '<span>Loading…</span>'; }
+      else if (s === 'playing'){ btn.disabled = false; btn.classList.add('playing'); btn.innerHTML = VOL + '<span>Stop</span>'; }
+      else if (s === 'error'){ btn.disabled = false; btn.classList.add('err'); btn.innerHTML = VOL_ERR + '<span>' + esc(label || 'Speech failed') + '</span>'; }
+      else { btn.disabled = false; btn.innerHTML = VOL + '<span>Listen</span>'; }
+    };
+
+    const stopAll = () => {
+      audioEls.forEach(a => { try { a.pause(); a.src=''; } catch(_){}});
+      audioEls = [];
+    };
+
+    btn.addEventListener('click', async () => {
+      if (state === 'playing'){ stopAll(); setState('idle'); return; }
+      const text = (getText() || '').trim();
+      if (!text) return;
+      setState('loading');
+      try {
+        const res = await fetch('/api/tts', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ text })
+        });
+        if (!res.ok){
+          let msg = 'Speech failed';
+          try {
+            const j = await res.json();
+            if (res.status === 503) msg = 'Not configured';
+            else if (res.status === 401 || res.status === 403) msg = 'Key rejected';
+            else if (res.status === 402) msg = 'Out of credits';
+            else if (res.status === 429) msg = 'Rate limited';
+            if (j && j.detail) console.warn('TTS error detail:', j.detail);
+          } catch(_){}
+          setState('error', msg);
+          setTimeout(() => { if (state === 'error') setState('idle'); }, 4000);
+          return;
+        }
+        const data = await res.json();
+        const audios = data.audios || [];
+        if (!audios.length){ setState('error', 'No audio'); setTimeout(()=>setState('idle'), 4000); return; }
+
+        // Play each base64 WAV chunk back-to-back.
+        audioEls = audios.map(b64 => new Audio('data:audio/wav;base64,' + b64));
+        setState('playing');
+        let i = 0;
+        const playNext = () => {
+          if (i >= audioEls.length){ setState('idle'); return; }
+          const a = audioEls[i++];
+          a.onended = playNext;
+          a.onerror = () => { setState('error','Playback failed'); setTimeout(()=>setState('idle'),4000); };
+          a.play().catch(() => { setState('error','Playback blocked'); setTimeout(()=>setState('idle'),4000); });
+        };
+        playNext();
+      } catch (err){
+        console.warn('TTS network error:', err);
+        setState('error', 'Network');
+        setTimeout(() => setState('idle'), 4000);
+      }
+    });
   }
 
   function addTyping(){
@@ -539,7 +669,13 @@ input[type=text]:focus-visible{outline:2px solid transparent}
     const closeLive = () => {
       if (live){
         if (cursor) cursor.remove();
-        if (!liveText.trim()) live.parentElement.remove();
+        const rowEl = live.parentElement;
+        const finalText = liveText;
+        if (!finalText.trim()){
+          rowEl.remove();
+        } else {
+          attachSpeaker(rowEl, () => finalText);
+        }
         live = null; cursor = null; liveText = '';
       }
     };

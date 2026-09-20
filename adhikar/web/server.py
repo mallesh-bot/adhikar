@@ -20,8 +20,10 @@ Run:
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import os
+import re
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -30,7 +32,8 @@ for p in (_ADHIKAR, os.path.join(_ADHIKAR, "agent")):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from fastapi import FastAPI, Request  # noqa: E402
+import httpx  # noqa: E402
+from fastapi import FastAPI, HTTPException, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import FileResponse, StreamingResponse  # noqa: E402
 from strands.hooks import AfterToolCallEvent, BeforeToolCallEvent  # noqa: E402
@@ -38,6 +41,70 @@ from strands.hooks import AfterToolCallEvent, BeforeToolCallEvent  # noqa: E402
 from main import build_agent  # noqa: E402
 
 SENSITIVE = {"income_band", "disability_status", "caste_category"}
+
+# ---- Sarvam TTS / LID -----------------------------------------------------
+# Endpoint URLs, request field names, response keys, character limits, and the
+# 11-code language taxonomy all match the Sarvam docs read on 2026-09-20:
+#   TTS: https://docs.sarvam.ai/api-reference-docs/text-to-speech/convert
+#   LID: https://docs.sarvam.ai/api-reference-docs/text/identify-language
+SARVAM_BASE = "https://api.sarvam.ai"
+SARVAM_TTS_URL = f"{SARVAM_BASE}/text-to-speech"
+SARVAM_LID_URL = f"{SARVAM_BASE}/text-lid"
+SARVAM_TTS_MAX_CHARS = 2500   # bulbul:v3
+SARVAM_LID_MAX_CHARS = 1000
+SARVAM_LANG_CODES = {
+    "en-IN", "hi-IN", "bn-IN", "gu-IN", "kn-IN", "ml-IN",
+    "mr-IN", "od-IN", "pa-IN", "ta-IN", "te-IN",
+}
+SARVAM_DEFAULT_MODEL = "bulbul:v3"
+# NB: Sarvam's docs table lists 40+ speakers for TTS as a whole, but the v3
+# model only accepts a subset -- the docs are misleading here. The API itself
+# rejects (`anushka`, `manisha`, `vidya`, `arya`, `karun`, `hitesh`) for v3,
+# so we pick from the v3-valid set. `priya` is a warm female Indic voice.
+SARVAM_DEFAULT_SPEAKER = "priya"
+SARVAM_DEFAULT_LANG = "en-IN"
+
+
+def _sarvam_key() -> str:
+    key = os.environ.get("SARVAM_API_KEY", "").strip()
+    if not key:
+        raise HTTPException(
+            status_code=503,
+            detail="SARVAM_API_KEY is not set on the server.",
+        )
+    return key
+
+
+# Sentence enders across English + every Indic script we support. Devanagari
+# and related scripts use U+0964 (।) as a full stop.
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?।])\s+")
+
+
+def _chunk_for_tts(text: str, limit: int = SARVAM_TTS_MAX_CHARS) -> list[str]:
+    """Pack sentences into <=limit-char chunks. A single sentence longer than
+    the limit is hard-sliced -- rare, but we cannot silently drop text."""
+    text = text.strip()
+    if len(text) <= limit:
+        return [text] if text else []
+    chunks: list[str] = []
+    buf = ""
+    for sentence in _SENTENCE_SPLIT.split(text):
+        s = sentence.strip()
+        if not s:
+            continue
+        if len(s) > limit:
+            if buf:
+                chunks.append(buf); buf = ""
+            for i in range(0, len(s), limit):
+                chunks.append(s[i:i + limit])
+            continue
+        if len(buf) + 1 + len(s) <= limit:
+            buf = f"{buf} {s}".strip()
+        else:
+            chunks.append(buf); buf = s
+    if buf:
+        chunks.append(buf)
+    return chunks
 
 
 class StreamHook:
@@ -234,6 +301,92 @@ async def chat(request: Request):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+async def _sarvam_detect_language(client: httpx.AsyncClient, text: str) -> str | None:
+    """POST /text-lid.  Returns a language_code from SARVAM_LANG_CODES,
+    or None if the response was unparseable (never raises for detect failures --
+    the caller falls back to en-IN)."""
+    probe = text[:SARVAM_LID_MAX_CHARS]
+    try:
+        r = await client.post(
+            SARVAM_LID_URL,
+            headers={"api-subscription-key": _sarvam_key(),
+                     "Content-Type": "application/json"},
+            json={"input": probe},
+            timeout=15.0,
+        )
+        r.raise_for_status()
+        code = (r.json() or {}).get("language_code")
+        return code if code in SARVAM_LANG_CODES else None
+    except (httpx.HTTPError, ValueError):
+        return None
+
+
+async def _sarvam_tts(client: httpx.AsyncClient, text: str, lang: str) -> list[str]:
+    """POST /text-to-speech.  Returns a list of base64 WAV audio strings
+    (one per chunk).  Raises HTTPException on Sarvam errors."""
+    chunks = _chunk_for_tts(text)
+    if not chunks:
+        return []
+    key = _sarvam_key()
+    audios: list[str] = []
+    for chunk in chunks:
+        payload = {
+            "text": chunk,
+            "language_code": lang,
+            "model": SARVAM_DEFAULT_MODEL,
+            "speaker": SARVAM_DEFAULT_SPEAKER,
+        }
+        r = await client.post(
+            SARVAM_TTS_URL,
+            headers={"api-subscription-key": key,
+                     "Content-Type": "application/json"},
+            json=payload,
+            timeout=45.0,
+        )
+        if r.status_code >= 400:
+            # Bubble the upstream body up so the UI can show something real
+            # (401/402/429 all look the same to the user otherwise).
+            detail = r.text[:400]
+            raise HTTPException(
+                status_code=502 if r.status_code >= 500 else r.status_code,
+                detail=f"Sarvam TTS {r.status_code}: {detail}",
+            )
+        body = r.json() or {}
+        for a in body.get("audios") or []:
+            if isinstance(a, str) and a:
+                audios.append(a)
+    return audios
+
+
+@app.post("/api/tts")
+async def tts(request: Request):
+    body = await request.json()
+    text = (body.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="empty text")
+    # Client can pass a hint (e.g. from an earlier detection); otherwise
+    # trust Sarvam's own LID over guessing.
+    hint = body.get("language_code")
+    if hint not in SARVAM_LANG_CODES:
+        hint = None
+
+    async with httpx.AsyncClient() as client:
+        lang = hint or await _sarvam_detect_language(client, text) or SARVAM_DEFAULT_LANG
+        audios = await _sarvam_tts(client, text, lang)
+
+    if not audios:
+        raise HTTPException(status_code=502, detail="Sarvam returned no audio")
+
+    # Concatenating raw WAV bodies without stripping headers is wrong; return
+    # the array so the frontend plays them back-to-back instead.
+    return {
+        "language_code": lang,
+        "audios": audios,
+        "audio_content_type": "audio/wav",
+        "count": len(audios),
+    }
 
 
 @app.post("/api/reset")

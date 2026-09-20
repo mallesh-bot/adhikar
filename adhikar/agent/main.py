@@ -69,6 +69,17 @@ Rules:
 6. Keep answers short -- this is a chat on someone's work break, not a report.
 7. After answering, call log_interaction with the best-matched category and
    the number of results -- no personal details, just the category.
+8. Always reply in the same language and script the user wrote to you in,
+   whatever that language is. Do not switch to English because the scheme
+   data is in English, and do not ask the user to switch languages. If the
+   user changes language mid-conversation, follow them.
+9. The scheme corpus is written in English, so the `query` you pass to
+   search_schemes must ALWAYS be in English -- translate the user's
+   situation into an English query first. This is true no matter what
+   language you are replying in. Keep scheme names and the official
+   apply links exactly as the tool returns them (do not translate a
+   scheme's official name), but write your one-sentence explanation of
+   why it matches in the user's language.
 """
 
 
