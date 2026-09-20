@@ -6,7 +6,7 @@ project doc; this README is just how to actually run it.
 ## What's real vs. what needs your machine
 
 Verified end-to-end on this machine (Windows 11, Python 3.14, Docker
-Desktop) as of 2026-09-19:
+Desktop) as of 2026-09-20:
 
 - **OpenSearch** runs single-node via `docker compose`, healthy on
   `localhost:9200`. Note: OpenSearch 2.12+ rejects `plugins.security.disabled=true`
@@ -48,6 +48,50 @@ Desktop) as of 2026-09-19:
   behave as expected.
 - **`data/interactions.jsonl`** confirmed written by the runtime with
   real category/count entries after each Test 3 run.
+- **FastAPI web app.** `uvicorn web.server:app` (not `python agent/main.py`)
+  is the real demo entry point now. Two routes:
+  - `/`  serves `web/static/landing.html` -- Fraunces wordmark, a hero
+    tagline that cycles through the same phrase in English, Hindi,
+    Kannada, Tamil, Bengali, Telugu on a ~2.2 s crossfade, a "Start
+    chatting" CTA that fades and navigates to `/chat`, a static-shot
+    of the Cedar consent chip as a differentiator callout, and a
+    "Built with" pill row (Strands, Cedar, OpenSearch, Groq, Sarvam).
+    Verified live: 6 taglines cycle in order over ~13 s; CTA sets
+    `body.leaving` then navigates to `/chat`; no console errors; no
+    horizontal overflow at 375 px.
+  - `/chat` serves `web/static/index.html` -- the animated chat UI
+    from the earlier commit, unchanged except for Indic font
+    fallbacks (Noto Sans Devanagari/Kannada/Tamil/Telugu/Bengali/
+    Malayalam/Gujarati/Gurmukhi/Oriya) and a per-message Listen
+    button. All chat fetches use `/api/*` paths, so nothing depended
+    on the old root path when routing was split.
+- **Multi-language reply support.** System-prompt rules 8+9 tell the
+  model to reply in the user's own language while always sending an
+  English `query` to `search_schemes`. Verified 5/5 in Hindi, Kannada,
+  Tamil, Bengali, Telugu with fresh agents: replies are dominantly in
+  the target script, every captured `search_schemes` query is pure
+  ASCII English.
+- **Script-based per-turn language lock** (`agent/lang.py`). Pure
+  Unicode-codepoint-range detector, 11/11 unit tests. On `gpt-oss-120b`
+  the tightened rule 8 alone was not enough for the first English turn
+  about Indian schemes (topical Hindi prior overrode the prompt).
+  `web/server.py` wraps the user's message with a short reply-language
+  directive derived from the detected script before `stream_async`,
+  then unwraps it from `agent.messages` so the directive does not
+  persist across turns. Verified end-to-end in the browser: the exact
+  disability/mobility-aid English scenario that previously produced a
+  Hindi reply now produces the English *"May I use your physical-
+  disability status to look up mobility-aid schemes for you?"* and
+  stays in English across the full consent flow.
+- **Sarvam TTS.** Per-message Listen button on each agent bubble.
+  Backend: `web/server.py` calls Sarvam `text-lid` on the reply,
+  then `text-to-speech` (`bulbul:v3`, `speaker=priya`); returns a
+  base64 WAV to the frontend, which plays it via `new Audio(...)`.
+  Long replies are chunked on sentence boundaries under Sarvam's
+  2500-char limit. Verified live: English and Hindi/Devanagari
+  replies both produced valid RIFF WAV, played through the button
+  cycling `Listen -> Loading -> Stop`. Bad-key path also verified:
+  Sarvam 403 -> UI shows amber "Key rejected" pill.
 - All 16 scheme JSON files were checked against a live web search in
   September 2026, not written from memory. Files with a `source_note`
   flagging a subsidy amount that changes often (PMAY, Mudra's loan
@@ -90,9 +134,18 @@ python data/load_opensearch.py    # embeds + indexes the 16 schemes; first run
 # console.groq.com/keys):
 export GROQ_API_KEY=gsk_...
 export ADHIKAR_MODEL_PROVIDER=groq
-python agent/main.py
 
-# End-to-end regression:
+# Optional -- Sarvam TTS powers the per-message Listen button. Without
+# this key the app still runs; the button shows an amber "Not configured"
+# state instead. Sign up at dashboard.sarvam.ai.
+export SARVAM_API_KEY=sk_...
+
+# Run the web app (this replaced `python agent/main.py` as the entry point):
+python -m uvicorn web.server:app --port 8000
+# Then open http://localhost:8000/ for the landing page, or straight to
+# http://localhost:8000/chat for the chat UI.
+
+# End-to-end regression (still valid; uses the same agent underneath):
 python consent_flow_test.py       # runs the 3-case suite against whatever
                                     # provider is currently selected
 ```
@@ -107,12 +160,22 @@ adhikar/
 ├── agent/
 │   ├── main.py                 # Agent + CedarAuthorization wiring; provider
 │   │                           #  branches for groq/ollama/anthropic/gemini
+│   ├── lang.py                 # pure Unicode-range script detector for the
+│   │                           #  per-turn reply-language lock
 │   └── tools/
 │       ├── search_schemes.py   # k-NN search over OpenSearch; sensitive_attributes
 │       │                       #  is REQUIRED (no default) so a model can't
 │       │                       #  silently omit it and bypass the Cedar gate
 │       ├── record_consent.py   # writes agent.state; Cedar reads it back
 │       └── log_interaction.py  # appends to data/interactions.jsonl
+├── web/
+│   ├── server.py               # FastAPI SSE bridge + /api/tts (Sarvam LID+TTS);
+│   │                           #  applies the language-lock wrap before
+│   │                           #  stream_async and unwraps after
+│   └── static/
+│       ├── landing.html        # multilingual hero + CTA -> /chat
+│       └── index.html          # animated chat UI: Cedar chip, scheme cards,
+│                               #  per-message Listen button
 ├── data/
 │   ├── schemes/*.json          # the 16 curated scheme docs
 │   ├── load_opensearch.py      # embeds + indexes them
