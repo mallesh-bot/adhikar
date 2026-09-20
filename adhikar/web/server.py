@@ -398,11 +398,22 @@ async def reset():
     return {"ok": True}
 
 
+_NO_STORE = {"Cache-Control": "no-store, must-revalidate"}
+
+
 @app.get("/")
-async def index():
-    # no-store so an edited page is never served stale -- this is a local dev
-    # and demo server, and a cached index.html silently hides UI changes.
+async def landing():
+    # Static marketing page; the chat app lives at /chat. Both are served
+    # no-store because on a demo day an edited file must never be cached.
+    return FileResponse(
+        os.path.join(_HERE, "static", "landing.html"),
+        headers=_NO_STORE,
+    )
+
+
+@app.get("/chat")
+async def chat_page():
     return FileResponse(
         os.path.join(_HERE, "static", "index.html"),
-        headers={"Cache-Control": "no-store, must-revalidate"},
+        headers=_NO_STORE,
     )

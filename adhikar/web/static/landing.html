@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Adhikar — Schemes you actually qualify for</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<!-- Indic script coverage: the cycling tagline needs every one of these
+     to render. Weights kept to 400/600 to limit the font download. -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Kannada:wght@400;600&family=Noto+Sans+Tamil:wght@400;600&family=Noto+Sans+Telugu:wght@400;600&family=Noto+Sans+Bengali:wght@400;600&family=Noto+Sans+Malayalam:wght@400;600&family=Noto+Sans+Gujarati:wght@400;600&family=Noto+Sans+Gurmukhi:wght@400;600&family=Noto+Sans+Oriya:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#FBF6EC;
+  --ink:#2A2018;
+  --muted:#8B7A64;
+  --accent:#C2703D;
+  --accent-ink:#FFF6EF;
+  --verified:#5B7553;
+  --card:#FFFDF8;
+  --border:#EADFC8;
+
+  --indic:'Noto Sans Devanagari','Noto Sans Kannada','Noto Sans Tamil',
+          'Noto Sans Telugu','Noto Sans Bengali','Noto Sans Malayalam',
+          'Noto Sans Gujarati','Noto Sans Gurmukhi','Noto Sans Oriya';
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Public Sans',var(--indic),system-ui,-apple-system,Segoe UI,sans-serif;
+  font-size:16px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  opacity:1;
+  transition:opacity 220ms ease-out;
+}
+body.leaving{opacity:0}
+
+/* subtle warm radial for a bit of depth without pattern noise */
+body::before{
+  content:"";
+  position:fixed;inset:0;pointer-events:none;
+  background:
+    radial-gradient(650px 460px at 15% 0%,   rgba(194,112,61,.09), transparent 62%),
+    radial-gradient(720px 520px at 100% 100%, rgba(91,117,83,.08),  transparent 60%);
+}
+
+.page{
+  max-width:720px;
+  margin:0 auto;
+  padding:22px 24px calc(48px + env(safe-area-inset-bottom));
+  position:relative;
+  min-height:100dvh;
+  display:flex;flex-direction:column;
+}
+@media (max-width:520px){ .page{padding:18px 18px 32px} }
+
+/* ---------- header row ---------- */
+.top{
+  display:flex;align-items:center;gap:10px;
+  padding-bottom:10px;
+}
+.mark{
+  width:28px;height:28px;color:var(--accent);flex:0 0 auto;
+}
+.brand{
+  font-family:'Fraunces',var(--indic),Georgia,serif;
+  font-weight:600;
+  font-size:21px;
+  letter-spacing:-.01em;
+  margin:0;
+}
+
+/* ---------- hero ---------- */
+.hero{
+  flex:1 1 auto;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:40px 0 32px;
+  min-height:52vh;
+}
+.wordmark{
+  font-family:'Fraunces',var(--indic),Georgia,serif;
+  font-weight:600;
+  font-size:clamp(48px, 10vw, 84px);
+  line-height:.98;
+  letter-spacing:-.02em;
+  margin:0 0 22px;
+}
+.tagline-frame{
+  position:relative;
+  height:calc(1.15em * clamp(22px, 4.4vw, 30px) / clamp(22px, 4.4vw, 30px));
+  min-height:clamp(30px, 5vw, 42px);
+  margin-bottom:20px;
+}
+.tagline{
+  position:absolute;inset:0;
+  font-family:'Fraunces',var(--indic),Georgia,serif;
+  font-weight:500;
+  font-style:italic;
+  font-size:clamp(22px, 4.4vw, 30px);
+  line-height:1.18;
+  color:var(--ink);
+  opacity:0;
+  transform:translateY(10px);
+  transition:opacity 480ms ease-out, transform 480ms ease-out;
+  will-change:transform,opacity;
+}
+.tagline.on{opacity:1;transform:none}
+.tagline.off{opacity:0;transform:translateY(-8px)}
+
+.tagline-cursor{
+  display:inline-block;width:2px;height:.9em;
+  background:var(--accent);
+  vertical-align:-2px;margin-left:3px;
+  animation:blink 1s steps(1) infinite;
+}
+@keyframes blink{0%,49%{opacity:.8}50%,100%{opacity:0}}
+
+.subhead{
+  font-size:clamp(16px, 2.6vw, 18px);
+  color:var(--muted);
+  max-width:52ch;
+  margin:0 0 32px;
+}
+.subhead strong{color:var(--ink);font-weight:600}
+
+.cta-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cta{
+  appearance:none;
+  border:none;
+  cursor:pointer;
+  font:inherit;
+  font-size:16px;
+  font-weight:600;
+  color:var(--accent-ink);
+  background:var(--accent);
+  padding:14px 22px;
+  border-radius:999px;
+  display:inline-flex;align-items:center;gap:10px;
+  transition:transform 140ms ease-out, box-shadow 200ms ease-out;
+  box-shadow:0 1px 0 rgba(0,0,0,0), 0 0 0 0 rgba(194,112,61,0);
+}
+.cta:hover{
+  box-shadow:0 3px 12px rgba(194,112,61,.24), 0 0 0 5px rgba(194,112,61,.10);
+}
+.cta:active{transform:scale(.97)}
+.cta:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.cta svg{width:18px;height:18px}
+
+.cta-note{
+  font-size:13px;color:var(--muted);
+}
+
+/* ---------- differentiator: cedar chip callout ---------- */
+.diff{
+  margin-top:56px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:22px 22px;
+  display:flex;gap:18px;align-items:flex-start;
+}
+.cedar-chip{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:8px 14px;
+  border-radius:999px;
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--verified);
+  background:#EEF3EC;
+  border:1px solid #CBDCC4;
+  box-shadow:0 0 0 5px rgba(91,117,83,.10);
+  flex:0 0 auto;
+  white-space:nowrap;
+  max-width:100%;
+}
+@media (max-width:560px){
+  .cedar-chip{white-space:normal}   /* let the label wrap at phone widths */
+}
+.cedar-chip svg{width:19px;height:19px;color:var(--verified);flex:0 0 auto}
+.diff-copy{min-width:0}
+.diff-copy h2{
+  margin:0 0 6px;
+  font-family:'Fraunces',var(--indic),Georgia,serif;
+  font-size:17px;font-weight:600;letter-spacing:-.005em;
+}
+.diff-copy p{
+  margin:0;color:var(--muted);font-size:14.5px;
+}
+@media (max-width:560px){
+  .diff{flex-direction:column;gap:14px}
+}
+
+/* ---------- stack pills ---------- */
+.stack{
+  margin:36px 0 0;
+  padding:0;list-style:none;
+  display:flex;flex-wrap:wrap;gap:8px;
+}
+.stack li{
+  font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Consolas,monospace;
+  font-size:11.5px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--muted);
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:5px 11px;
+}
+.stack .built-with{
+  font-family:'Public Sans',sans-serif;
+  color:var(--ink);
+  font-weight:600;
+  text-transform:none;
+  letter-spacing:0;
+  font-size:12.5px;
+  border-color:transparent;
+  padding-left:0;
+  padding-right:8px;
+}
+
+/* ---------- reduced motion: instant, static ---------- */
+@media (prefers-reduced-motion:reduce){
+  body{transition:none}
+  .tagline{transition:none;transform:none}
+  .tagline.off{transform:none}
+  .tagline-cursor{animation:none;opacity:.8}
+  .cta{transition:none}
+  .cta:active{transform:none}
+}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <div class="top">
+    <svg class="mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2.6 4.6 5.5v6c0 4.6 3.1 8.5 7.4 9.9 4.3-1.4 7.4-5.3 7.4-9.9v-6L12 2.6Z"
+            stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+      <path d="m8.6 11.9 2.4 2.4 4.4-4.6" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <p class="brand">Adhikar</p>
+  </div>
+
+  <section class="hero" aria-labelledby="wordmark">
+    <h1 id="wordmark" class="wordmark">Adhikar<span aria-hidden="true">.</span></h1>
+
+    <div class="tagline-frame" id="cycle" aria-live="polite" aria-atomic="true">
+      <!-- filled by JS: one .tagline per language; the .on one is visible -->
+    </div>
+
+    <p class="subhead">
+      Describe your work, your state, your situation.
+      Adhikar returns the government welfare schemes you're actually
+      entitled to <strong>and asks before touching anything sensitive</strong>.
+    </p>
+
+    <div class="cta-row">
+      <button type="button" class="cta" id="start">
+        <span>Start chatting</span>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor"
+                stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="cta-note">No sign-in. Runs on your machine.</span>
+    </div>
+  </section>
+
+  <section class="diff" aria-label="Consent-aware search">
+    <div class="cedar-chip" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 2.6 4.6 5.5v6c0 4.6 3.1 8.5 7.4 9.9 4.3-1.4 7.4-5.3 7.4-9.9v-6L12 2.6Z"
+              stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" opacity=".38"/>
+        <path d="m8.4 11.9 2.5 2.5 4.6-4.8" stroke="currentColor"
+              stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Consent recorded &mdash; Cedar authorized this search</span>
+    </div>
+    <div class="diff-copy">
+      <h2>Sensitive matches are gated by policy, not politeness.</h2>
+      <p>
+        Income band, disability status, and caste category can each unlock
+        different schemes &mdash; but the agent has to ask before it uses
+        them. A Cedar policy denies the search until you say yes, so the
+        rule holds even when the model would rather charge ahead.
+      </p>
+    </div>
+  </section>
+
+  <ul class="stack" aria-label="Built with">
+    <li class="built-with">Built with</li>
+    <li>Strands Agents</li>
+    <li>Cedar</li>
+    <li>OpenSearch</li>
+    <li>Groq (gpt-oss-120b)</li>
+    <li>Sarvam (Bulbul v3)</li>
+  </ul>
+
+</main>
+
+<script>
+(() => {
+  const LINES = [
+    { code: 'en-IN', text: 'Schemes you actually qualify for' },
+    { code: 'hi-IN', text: 'वे योजनाएँ जिनके आप वाकई हकदार हैं' },
+    { code: 'kn-IN', text: 'ನೀವು ನಿಜವಾಗಿಯೂ ಅರ್ಹರಾಗಿರುವ ಯೋಜನೆಗಳು' },
+    { code: 'ta-IN', text: 'நீங்கள் உண்மையில் தகுதி பெறும் திட்டங்கள்' },
+    { code: 'bn-IN', text: 'যে প্রকল্পগুলোর জন্য আপনি সত্যিই যোগ্য' },
+    { code: 'te-IN', text: 'మీరు నిజంగా అర్హులైన పథకాలు' },
+  ];
+
+  const CYCLE_MS = 2200;
+  const cycle = document.getElementById('cycle');
+
+  // Build one absolutely-positioned span per language; JS toggles which is
+  // .on. Prevents layout shift as scripts have different ascender/descender
+  // heights.
+  LINES.forEach((L, i) => {
+    const el = document.createElement('span');
+    el.className = 'tagline' + (i === 0 ? ' on' : '');
+    el.setAttribute('lang', L.code);
+    el.textContent = L.text;
+    // decorative caret on the currently-visible line, no impact on layout
+    if (i === 0) el.insertAdjacentHTML('beforeend', '<i class="tagline-cursor" aria-hidden="true"></i>');
+    cycle.appendChild(el);
+  });
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let idx = 0;
+  const step = () => {
+    const cur = cycle.children[idx];
+    const nextIdx = (idx + 1) % LINES.length;
+    const next = cycle.children[nextIdx];
+
+    // move the decorative caret to whichever line is about to be visible
+    const oldCaret = cur.querySelector('.tagline-cursor');
+    if (oldCaret) oldCaret.remove();
+    next.insertAdjacentHTML('beforeend', '<i class="tagline-cursor" aria-hidden="true"></i>');
+
+    if (reduced){
+      cur.classList.remove('on');
+      next.classList.add('on');
+    } else {
+      cur.classList.remove('on'); cur.classList.add('off');
+      // let the DOM commit before flipping the new one on, so the
+      // transition actually runs from the initial state
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { next.classList.add('on'); });
+      });
+      setTimeout(() => cur.classList.remove('off'), 600);
+    }
+    idx = nextIdx;
+  };
+  setInterval(step, CYCLE_MS);
+
+  // CTA: fade the whole page out, then navigate. The setTimeout mirrors
+  // body's transition-duration; if scripts get blocked at the wrong moment
+  // the fallback still fires.
+  const cta = document.getElementById('start');
+  const goToChat = () => {
+    document.body.classList.add('leaving');
+    let done = false;
+    const jump = () => { if (done) return; done = true; window.location.href = '/chat'; };
+    setTimeout(jump, reduced ? 0 : 240);
+  };
+  cta.addEventListener('click', goToChat);
+})();
+</script>
+</body>
+</html>
