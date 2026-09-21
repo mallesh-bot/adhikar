@@ -299,15 +299,15 @@ Lambda-backed analytics pipeline.
 
 ## License
 
-<!-- TODO: pick a license (MIT is the usual hackathon default) and add a
-     LICENSE file at the repo root. Update this section to match. -->
-
-_TODO — add a `LICENSE` file at the repo root._
+**MIT** — see [`LICENSE`](./LICENSE) at the repo root. Scheme names,
+benefits, and apply-URLs referenced in `adhikar/data/schemes/*.json` belong
+to the respective Government of India / state welfare portals and are used
+here for informational purposes only.
 
 ---
 
 ## Attribution
 
-Built by [@mallesh-bot](https://github.com/mallesh-bot) with pair-programming
-assistance from Claude Code. Scheme names, benefits, and apply links belong
-to the respective Government of India / state welfare portals.
+Built by [@mallesh-bot](https://github.com/mallesh-bot) for the WeMakeDevs
+× AWS First Commit hackathon, with pair-programming assistance from
+[Claude Code](https://claude.com/claude-code).
